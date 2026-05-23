@@ -1,0 +1,1341 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generador de Etiquetas para Ottosaurio</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Courier New', monospace;
+            background: #f5f5f5;
+            padding: 20px;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 4px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+        }
+
+        .toggle-switch input[type="checkbox"] {
+            display: none;
+        }
+
+        .toggle-label {
+            display: inline-flex;
+            background: #e0e0e0;
+            border-radius: 20px;
+            padding: 3px;
+            cursor: pointer;
+            position: relative;
+            width: 80px;
+            height: 32px;
+            transition: background 0.3s;
+        }
+
+        .toggle-label::after {
+            content: '';
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 36px;
+            height: 26px;
+            background: white;
+            border-radius: 16px;
+            transition: transform 0.3s;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+            z-index: 0;
+        }
+
+        .toggle-switch input[type="checkbox"]:checked + .toggle-label {
+            background: #0066cc;
+        }
+
+        .toggle-switch input[type="checkbox"]:checked + .toggle-label::after {
+            transform: translateX(38px);
+        }
+
+        .toggle-option {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 13px;
+            z-index: 1;
+            color: #555;
+            transition: color 0.3s;
+            position: relative;
+        }
+
+        .toggle-switch input[type="checkbox"]:not(:checked) + .toggle-label .toggle-option-1 {
+            color: #0066cc;
+        }
+
+        .toggle-switch input[type="checkbox"]:checked + .toggle-label .toggle-option-2 {
+            color: white;
+        }
+
+        .toggle-switch input[type="checkbox"]:checked + .toggle-label .toggle-option-1 {
+            color: #999;
+        }
+
+        h1 {
+            font-size: 24px;
+            margin-bottom: 30px;
+            font-weight: bold;
+            letter-spacing: -0.5px;
+        }
+
+        .input-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        label {
+            font-size: 14px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #222;
+        }
+
+        input[type="text"],
+        input[type="number"],
+        textarea {
+            padding: 12px;
+            font-size: 14px;
+            border: 1px solid #ccc;
+            border-radius: 2px;
+            font-family: 'Courier New', monospace;
+            background: #fafafa;
+            transition: border-color 0.2s;
+        }
+
+        input[type="text"]:focus,
+        input[type="number"]:focus,
+        textarea:focus {
+            outline: none;
+            border-color: #333;
+            background: white;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 120px;
+            font-size: 13px;
+        }
+
+        .dimensions-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 12px;
+            margin-top: 30px;
+        }
+
+        button {
+            padding: 12px 24px;
+            font-size: 14px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border: none;
+            border-radius: 2px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: 'Courier New', monospace;
+        }
+
+        .btn-generate {
+            background: #333;
+            color: white;
+            flex: 1;
+        }
+
+        .btn-generate:hover {
+            background: #555;
+        }
+
+        .btn-export {
+            background: #0066cc;
+            color: white;
+            flex: 1;
+        }
+
+        .btn-export:hover {
+            background: #0052a3;
+        }
+
+        .btn-export:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .btn-clear {
+            background: #f0f0f0;
+            color: #333;
+            flex: 1;
+            border: 1px solid #ccc;
+        }
+
+        .btn-clear:hover {
+            background: #e0e0e0;
+        }
+
+        .error-message {
+            color: #d32f2f;
+            font-size: 13px;
+            margin-top: 8px;
+            display: none;
+        }
+
+        .error-message.show {
+            display: block;
+        }
+
+        .preview-section {
+            margin-top: 40px;
+            border-top: 2px solid #e0e0e0;
+            padding-top: 30px;
+        }
+
+        .preview-title {
+            font-size: 14px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 20px;
+            color: #222;
+        }
+
+        #previewContainer {
+            display: grid;
+            gap: 2mm;
+            margin-bottom: 20px;
+            justify-content: start;
+            align-content: start;
+            width: 216mm;
+            max-width: 100%;
+            padding: 5mm;
+            background: white;
+            border: 1px solid #ccc;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+            min-height: 279mm;
+            box-sizing: border-box;
+            grid-auto-rows: min-content;
+        }
+
+        .preview-section {
+            overflow-x: auto;
+        }
+
+        .label-preview {
+            border: 1px solid #ccc;
+            padding: 4px;
+            background: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 11px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            flex-shrink: 0;
+            box-sizing: border-box;
+            overflow: hidden;
+        }
+
+        .label-isla {
+            font-weight: bold;
+            padding: 0;
+            text-transform: uppercase;
+            line-height: 1.2;
+            width: 100%;
+            text-align: center;
+        }
+
+        .label-barcode {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            padding: 0;
+            min-height: 0;
+        }
+
+        .label-barcode canvas,
+        .label-barcode svg {
+            max-width: 100%;
+            height: auto;
+            max-height: 100%;
+        }
+
+        .label-number {
+            font-weight: bold;
+            letter-spacing: 0.5px;
+            padding: 0;
+            width: 100%;
+            text-align: center;
+            line-height: 1.2;
+        }
+
+        .status-message {
+            padding: 12px;
+            border-radius: 2px;
+            margin-bottom: 20px;
+            font-size: 13px;
+            display: none;
+        }
+
+        .status-message.show {
+            display: block;
+        }
+
+        .status-message.success {
+            background: #e8f5e9;
+            color: #2e7d32;
+            border-left: 3px solid #4caf50;
+        }
+
+        .status-message.info {
+            background: #e3f2fd;
+            color: #1565c0;
+            border-left: 3px solid #2196f3;
+        }
+
+        .confirmation-dialog {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .confirmation-dialog.show {
+            display: flex;
+        }
+
+        .dialog-content {
+            background: white;
+            padding: 30px;
+            border-radius: 4px;
+            max-width: 500px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+
+        .dialog-content h3 {
+            margin-bottom: 15px;
+            font-size: 16px;
+        }
+
+        .dialog-content p {
+            margin-bottom: 10px;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        .dialog-buttons {
+            display: flex;
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        .dialog-buttons button {
+            flex: 1;
+        }
+
+        .btn-confirm {
+            background: #0066cc;
+            color: white;
+        }
+
+        .btn-confirm:hover {
+            background: #0052a3;
+        }
+
+        .btn-cancel {
+            background: #f0f0f0;
+            color: #333;
+            border: 1px solid #ccc;
+        }
+
+        .btn-cancel:hover {
+            background: #e0e0e0;
+        }
+
+        @media (max-width: 768px) {
+            .input-section {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+
+            #previewContainer {
+                grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            }
+
+            .button-group {
+                flex-direction: column;
+            }
+        }
+
+        /* Para impresión PDF */
+        @media print {
+            body {
+                background: white;
+                padding: 0;
+            }
+
+            .container {
+                box-shadow: none;
+                padding: 0;
+                max-width: 100%;
+                margin: 0;
+            }
+
+            .input-section,
+            .button-group,
+            .preview-title,
+            h1 {
+                display: none;
+            }
+
+            #previewContainer {
+                gap: 0;
+                margin-bottom: 0;
+            }
+
+            .label-preview {
+                break-inside: avoid;
+                box-shadow: none;
+                border: none;
+                padding: 0;
+                page-break-inside: avoid;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Generador de Etiquetas para Ottosaurio</h1>
+
+        <div class="input-section">
+            <div>
+
+                <div id="multipleIslaMode">
+                    <div class="form-group" style="margin-top: 20px;">
+                        <label style="display: flex; align-items: center; gap: 12px;">
+                            <span>Etiquetas por máquina:</span>
+                            <div class="toggle-switch">
+                                <input type="checkbox" id="duplicateToggle">
+                                <label for="duplicateToggle" class="toggle-label">
+                                    <span class="toggle-option toggle-option-1">1</span>
+                                    <span class="toggle-option toggle-option-2">2</span>
+                                </label>
+                            </div>
+                        </label>
+                    </div>
+                    
+                    <div class="form-group" style="margin-top: 20px;">
+                        <label>Isla — Máquina (una por línea) <span id="multipleCounter" style="font-weight: normal; color: #666; margin-left: 8px;"></span></label>
+                        <textarea id="islaNumberInput" placeholder="Soporta tab, espacio, coma o guion como separador.&#10;Ej:&#10;30-100007&#10;30 100007&#10;100&#9;100001 (copiado de Excel)">100	100001
+200	100100
+300	100300
+500	100502
+600	101125</textarea>
+                        <div class="error-message" id="errorMessage2"></div>
+                    </div>
+                </div>
+
+                <!-- Modo single-isla removido (oculto) -->
+                <div id="singleIslaMode" style="display: none;">
+                    <input type="number" id="islaInput" value="30">
+                    <textarea id="numbersInput"></textarea>
+                    <div class="error-message" id="errorMessage"></div>
+                    <span id="singleCounter"></span>
+                </div>
+            </div>
+
+            <div>
+                <div class="form-group">
+                    <label>Dimensiones de Etiqueta</label>
+                    <div class="dimensions-grid">
+                        <div>
+                            <label style="font-size: 12px; font-weight: normal;">Ancho: <span id="widthDisplay">60</span>mm</label>
+                            <input type="range" id="widthSlider" min="30" max="150" step="5" value="60" style="width: 100%; cursor: pointer;">
+                        </div>
+                        <div>
+                            <label style="font-size: 12px; font-weight: normal;">Alto: <span id="heightDisplay">40</span>mm</label>
+                            <input type="range" id="heightSlider" min="20" max="100" step="5" value="40" style="width: 100%; cursor: pointer;">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group" style="margin-top: 20px;">
+                    <label>Tamaño de Textos</label>
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <input type="range" id="fontSizeSlider" min="0.4" max="2.0" step="0.1" value="0.8" style="flex: 1; cursor: pointer;">
+                        <span id="fontSizeValue" style="font-weight: bold; min-width: 40px; text-align: right;">0.8x</span>
+                    </div>
+                </div>
+
+                <div style="margin-top: 20px; padding: 12px; border: 1px solid #ddd; border-radius: 2px; background: #fafafa;">
+                    <small style="font-size: 10px; font-weight: bold; color: #666; display: block; margin-bottom: 8px;">VISTA PREVIA (tamaño real)</small>
+                    <div id="livePreview" style="border: 1px solid #ccc; background: white; display: flex; flex-direction: column; align-items: center; justify-content: space-between; padding: 4px; font-family: 'Courier New', monospace; box-sizing: border-box; overflow: hidden;">
+                        <div id="previewIsla" style="font-weight: bold; line-height: 1.2; text-align: center; width: 100%; text-transform: uppercase;">ISLA: 300</div>
+                        <canvas id="previewBarcode" style="width: 100%; flex: 1; max-width: 100%; display: block;"></canvas>
+                        <div id="previewNumber" style="font-weight: bold; line-height: 1.2; text-align: center; width: 100%;">100007</div>
+                    </div>
+                </div>
+
+                <div style="margin-top: 20px; padding: 12px; background: #f0f0f0; border-radius: 2px; font-size: 12px; line-height: 1.6;">
+                    <strong>Cómo usar:</strong>
+                    <ul style="margin: 8px 0 0 20px;">
+                        <li>Una etiqueta por línea: <code>isla máquina</code></li>
+                        <li>Separa con tab, espacio, coma o guion</li>
+                        <li>Pega directo desde Excel (formato: <code>100[tab]100001</code>)</li>
+                        <li>La máquina debe tener 6 dígitos</li>
+                        <li>Si pones una máquina dos veces, se generan dos etiquetas iguales</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="button-group">
+            <button class="btn-generate" onclick="generateLabels()">Generar Etiquetas</button>
+            <button class="btn-export" id="exportBtn" disabled onclick="exportToPDF()">Exportar a PDF</button>
+            <button class="btn-export" id="printBtn" disabled onclick="printLabels()" style="background: #28a745;">Imprimir</button>
+            <button class="btn-clear" onclick="clearAll()">Limpiar</button>
+        </div>
+
+        <div class="status-message" id="statusMessage"></div>
+
+        <div class="preview-section" id="previewSection" style="display: none;">
+            <div class="preview-title">Vista Previa</div>
+            <div id="previewContainer"></div>
+        </div>
+    </div>
+
+    <div class="confirmation-dialog" id="confirmationDialog">
+        <div class="dialog-content">
+            <h3>Confirmación de Números</h3>
+            <p id="dialogMessage"></p>
+            <div class="dialog-buttons">
+                <button class="btn-confirm" onclick="confirmLabels()">Continuar</button>
+                <button class="btn-cancel" onclick="cancelLabels()">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let pendingLabels = [];
+        let currentLabels = [];
+        let labelsGenerated = false;
+
+        function switchInputMode() {
+            const mode = document.querySelector('input[name="inputMode"]:checked').value;
+            document.getElementById('singleIslaMode').style.display = mode === 'single-isla' ? 'block' : 'none';
+            document.getElementById('multipleIslaMode').style.display = mode === 'multiple-isla' ? 'block' : 'none';
+            document.getElementById('errorMessage').classList.remove('show');
+            document.getElementById('errorMessage2').classList.remove('show');
+        }
+
+        function parseNumbers(input) {
+            const raw = input.trim();
+            if (!raw) return [];
+
+            // Reemplazar separadores comunes por espacios
+            const normalized = raw.replace(/[-,\n]/g, ' ');
+            const parts = normalized.split(/\s+/).filter(p => p.length > 0);
+
+            const numbers = [];
+            const issues = [];
+
+            parts.forEach(part => {
+                const num = part.trim();
+                if (!/^\d+$/.test(num)) {
+                    issues.push(`"${num}" no es un número válido`);
+                    return;
+                }
+
+                if (num.length !== 6) {
+                    issues.push(`"${num}" tiene ${num.length} dígitos (se requieren 6)`);
+                    return;
+                }
+
+                numbers.push(num);
+            });
+
+            return { numbers: numbers, issues };
+        }
+
+        function parseIslaNumberPairs(input) {
+            const raw = input.trim();
+            if (!raw) return { pairs: [], issues: [] };
+
+            const lines = raw.split('\n').map(l => l.trim()).filter(l => l);
+            const pairs = [];
+            const issues = [];
+
+            lines.forEach((line, idx) => {
+                // Detectar dos números separados por tab, espacio, coma, guion, punto y coma o pipe
+                const match = line.match(/^(\d+)[\s\-,;|]+(\d+)$/);
+                if (!match) {
+                    issues.push(`Línea ${idx + 1}: formato no reconocido "${line}" (usa "isla máquina" o "máquina isla")`);
+                    return;
+                }
+
+                const num1 = match[1];
+                const num2 = match[2];
+
+                // La máquina siempre tiene 6 dígitos, la isla 1-3
+                // Detectar automáticamente cuál es cuál
+                let isla, numero;
+                
+                if (num1.length === 6 && num2.length <= 3) {
+                    // Formato: máquina isla
+                    numero = num1;
+                    isla = num2;
+                } else if (num2.length === 6 && num1.length <= 3) {
+                    // Formato: isla máquina
+                    isla = num1;
+                    numero = num2;
+                } else if (num1.length === 6 && num2.length === 6) {
+                    issues.push(`Línea ${idx + 1}: ambos números tienen 6 dígitos, no se puede determinar cuál es la isla`);
+                    return;
+                } else {
+                    issues.push(`Línea ${idx + 1}: ninguno de los números tiene 6 dígitos (máquina debe tener 6)`);
+                    return;
+                }
+
+                pairs.push({ isla, numero });
+            });
+
+            return { pairs: pairs, issues };
+        }
+
+        function generateLabels() {
+            const errorEl2 = document.getElementById('errorMessage2');
+            const statusEl = document.getElementById('statusMessage');
+            errorEl2.classList.remove('show');
+            statusEl.classList.remove('show');
+
+            const islaNumberInput = document.getElementById('islaNumberInput').value;
+            const { pairs, issues } = parseIslaNumberPairs(islaNumberInput);
+
+            if (pairs.length === 0) {
+                errorEl2.innerHTML = 'Errores:<br>' + issues.join('<br>');
+                errorEl2.classList.add('show');
+                return;
+            }
+
+            // Verificar si hay que duplicar cada etiqueta
+            const duplicate = document.getElementById('duplicateToggle').checked;
+            let finalPairs = pairs;
+            if (duplicate) {
+                finalPairs = [];
+                pairs.forEach(p => {
+                    finalPairs.push(p);
+                    finalPairs.push(p);
+                });
+            }
+
+            if (issues.length > 0) {
+                pendingLabels = finalPairs;
+                const dialogMsg = `Se encontraron errores:<br><br>${issues.join('<br>')}<br><br>Se procesarán ${finalPairs.length} etiqueta(s) válida(s). ¿Continuar?`;
+                document.getElementById('dialogMessage').innerHTML = dialogMsg;
+                document.getElementById('confirmationDialog').classList.add('show');
+                return;
+            }
+
+            confirmLabelsInternal(finalPairs);
+        }
+
+        function confirmLabels() {
+            document.getElementById('confirmationDialog').classList.remove('show');
+            confirmLabelsInternal(pendingLabels);
+        }
+
+        function cancelLabels() {
+            document.getElementById('confirmationDialog').classList.remove('show');
+            pendingLabels = [];
+        }
+
+        function confirmLabelsInternal(labels, scrollToPreview = true) {
+            currentLabels = labels;
+            const previewContainer = document.getElementById('previewContainer');
+            const previewSection = document.getElementById('previewSection');
+            const statusEl = document.getElementById('statusMessage');
+
+            previewContainer.innerHTML = '';
+
+            const widthMM = parseInt(document.getElementById('widthSlider').value);
+            const heightMM = parseInt(document.getElementById('heightSlider').value);
+
+            // Calcular cuántas etiquetas caben por fila en hoja carta (216mm - 10mm margen)
+            const usableWidthMM = 206; // 216 - 10 (5mm cada lado)
+            const gapMM = 2;
+            const columnsPerRow = Math.max(1, Math.floor((usableWidthMM + gapMM) / (widthMM + gapMM)));
+
+            // Aplicar columnas dinámicas al grid - usar repeat exacto
+            previewContainer.style.gridTemplateColumns = `repeat(${columnsPerRow}, ${widthMM}mm)`;
+
+            // Calcular tamaños de fuente basados en altura de etiqueta
+            // Leer multiplicador del slider
+            const fontMultiplier = parseFloat(document.getElementById('fontSizeSlider').value);
+            const spacing = 2; // Valor fijo
+            const barcodeHeightPercent = 0.6; // 60% fijo
+            const fontSizeMultiplier = 0.8 * fontMultiplier;
+            const islaFontSize = Math.max(8, heightMM * fontSizeMultiplier);
+            const numberFontSize = Math.max(10, heightMM * fontSizeMultiplier * 1.1);
+
+            labels.forEach((label, idx) => {
+                const { isla, numero } = label;
+                const labelDiv = document.createElement('div');
+                labelDiv.className = 'label-preview';
+                labelDiv.style.width = widthMM + 'mm';
+                labelDiv.style.height = heightMM + 'mm';
+                labelDiv.style.minWidth = widthMM + 'mm';
+                labelDiv.style.minHeight = heightMM + 'mm';
+                // Mismos estilos inline que livePreview (la preview chica)
+                labelDiv.style.border = '1px solid #ccc';
+                labelDiv.style.background = 'white';
+                labelDiv.style.display = 'flex';
+                labelDiv.style.flexDirection = 'column';
+                labelDiv.style.alignItems = 'center';
+                labelDiv.style.justifyContent = 'space-between';
+                labelDiv.style.padding = '4px';
+                labelDiv.style.fontFamily = "'Courier New', monospace";
+                labelDiv.style.boxSizing = 'border-box';
+                labelDiv.style.overflow = 'hidden';
+
+                const isla_div = document.createElement('div');
+                isla_div.textContent = 'ISLA: ' + isla;
+                isla_div.style.fontWeight = 'bold';
+                isla_div.style.lineHeight = '1.2';
+                isla_div.style.textAlign = 'center';
+                isla_div.style.width = '100%';
+                isla_div.style.textTransform = 'uppercase';
+                isla_div.style.fontSize = islaFontSize + 'px';
+
+                const barcode_div = document.createElement('canvas');
+                const barcodeId = `barcode_${idx}`;
+                barcode_div.id = barcodeId;
+                barcode_div.style.width = '100%';
+                barcode_div.style.flex = '1';
+                barcode_div.style.maxWidth = '100%';
+                barcode_div.style.display = 'block';
+
+                const number_div = document.createElement('div');
+                number_div.textContent = numero;
+                number_div.style.fontWeight = 'bold';
+                number_div.style.lineHeight = '1.2';
+                number_div.style.textAlign = 'center';
+                number_div.style.width = '100%';
+                number_div.style.fontSize = numberFontSize + 'px';
+
+                labelDiv.appendChild(isla_div);
+                labelDiv.appendChild(barcode_div);
+                labelDiv.appendChild(number_div);
+
+                previewContainer.appendChild(labelDiv);
+            });
+
+            previewSection.style.display = 'block';
+            statusEl.className = 'status-message show success';
+            statusEl.textContent = `✓ ${labels.length} etiqueta(s) generada(s)`;
+            document.getElementById('exportBtn').disabled = false;
+            document.getElementById('printBtn').disabled = false;
+            labelsGenerated = true;
+
+            // Esperar a que el DOM se renderice, luego generar códigos
+            setTimeout(() => {
+                labels.forEach((label, idx) => {
+                    const { numero } = label;
+                    const barcodeId = `barcode_${idx}`;
+                    const canvasEl = document.getElementById(barcodeId);
+                    
+                    if (canvasEl) {
+                        // Usar SVG temporal para generar barcode
+                        const tempSvgId = `temp_svg_${idx}`;
+                        const tempDiv = document.createElement('div');
+                        tempDiv.style.display = 'none';
+                        tempDiv.innerHTML = `<svg id="${tempSvgId}"></svg>`;
+                        document.body.appendChild(tempDiv);
+                        
+                        // Calcular dimensiones
+                        const barcodeHeight = Math.max(30, heightMM * barcodeHeightPercent);
+                        const barWidth = Math.max(1.8, (widthMM / 70));
+                        
+                        // Generar en SVG temporal
+                        JsBarcode(`#${tempSvgId}`, numero, {
+                            format: 'CODE128',
+                            width: barWidth,
+                            height: barcodeHeight,
+                            displayValue: false,
+                            margin: 0
+                        });
+                        
+                        // Convertir SVG a canvas con buena resolución
+                        const svgEl = document.getElementById(tempSvgId);
+                        const svgString = new XMLSerializer().serializeToString(svgEl);
+                        const canvas = canvasEl;
+                        const ctx = canvas.getContext('2d');
+                        
+                        const img = new Image();
+                        img.onload = () => {
+                            canvas.width = img.width;
+                            canvas.height = img.height;
+                            ctx.drawImage(img, 0, 0);
+                        };
+                        img.src = 'data:image/svg+xml;base64,' + btoa(svgString);
+                        
+                        // Limpiar temporal
+                        tempDiv.remove();
+                    }
+                });
+
+                // Scroll a vista previa solo si se solicitó
+                if (scrollToPreview) {
+                    previewSection.scrollIntoView({ behavior: 'smooth' });
+                }
+            }, 150);
+        }
+
+        function printLabels() {
+            if (!labelsGenerated || currentLabels.length === 0) return;
+
+            const widthMM = parseInt(document.getElementById('widthSlider').value);
+            const heightMM = parseInt(document.getElementById('heightSlider').value);
+            const fontMultiplier = parseFloat(document.getElementById('fontSizeSlider').value);
+            const fontSizeMultiplier = 0.8 * fontMultiplier;
+            const islaFontSize = Math.max(8, heightMM * fontSizeMultiplier);
+            const numberFontSize = Math.max(10, heightMM * fontSizeMultiplier * 1.1);
+            const spacing = 2;
+            const barcodeHeightPercent = 0.6;
+
+            // Generar HTML para impresión con misma lógica que la preview
+            let labelsHtml = '';
+            
+            currentLabels.forEach((label, idx) => {
+                const { isla, numero } = label;
+                const barcodeId = `print_barcode_${idx}`;
+                labelsHtml += `
+                    <div class="print-label" style="width: ${widthMM}mm; height: ${heightMM}mm; border: 1px solid #ccc; display: inline-flex; flex-direction: column; align-items: center; justify-content: space-between; padding: 4px; box-sizing: border-box; font-family: 'Courier New', monospace; page-break-inside: avoid; margin: 1mm; overflow: hidden;">
+                        <div style="font-size: ${islaFontSize}px; font-weight: bold; line-height: 1.2; margin: 0 0 ${spacing}px 0;">ISLA: ${isla}</div>
+                        <canvas id="${barcodeId}" style="width: 100%; flex: 1; max-width: 100%; display: block;"></canvas>
+                        <div style="font-size: ${numberFontSize}px; font-weight: bold; line-height: 1.2; margin: ${spacing}px 0 0 0;">${numero}</div>
+                    </div>
+                `;
+            });
+
+            // Abrir ventana nueva
+            const printWindow = window.open('', '_blank');
+            printWindow.document.write(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Imprimir Etiquetas</title>
+                    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"><\/script>
+                    <style>
+                        @page {
+                            size: letter;
+                            margin: 5mm;
+                        }
+                        body {
+                            margin: 0;
+                            padding: 0;
+                            font-family: 'Courier New', monospace;
+                        }
+                        .print-container {
+                            display: flex;
+                            flex-wrap: wrap;
+                            gap: 2mm;
+                            align-content: flex-start;
+                        }
+                        @media print {
+                            .print-label {
+                                page-break-inside: avoid;
+                            }
+                        }
+                    </style>
+                </head>
+                <body>
+                    <div class="print-container">
+                        ${labelsHtml}
+                    </div>
+                    <script>
+                        window.addEventListener('load', () => {
+                            const labels = ${JSON.stringify(currentLabels)};
+                            const widthMM = ${widthMM};
+                            const heightMM = ${heightMM};
+                            const barcodeHeightPercent = ${barcodeHeightPercent};
+                            
+                            labels.forEach((label, idx) => {
+                                const barcodeId = 'print_barcode_' + idx;
+                                const canvasEl = document.getElementById(barcodeId);
+                                
+                                if (canvasEl) {
+                                    const tempSvgId = 'temp_print_svg_' + idx;
+                                    const tempDiv = document.createElement('div');
+                                    tempDiv.style.display = 'none';
+                                    tempDiv.innerHTML = '<svg id="' + tempSvgId + '"></svg>';
+                                    document.body.appendChild(tempDiv);
+                                    
+                                    const barWidth = Math.max(1.8, (widthMM / 70));
+                                    const barcodeHeight = Math.max(30, heightMM * barcodeHeightPercent);
+                                    
+                                    JsBarcode('#' + tempSvgId, label.numero, {
+                                        format: 'CODE128',
+                                        width: barWidth,
+                                        height: barcodeHeight,
+                                        displayValue: false,
+                                        margin: 0
+                                    });
+                                    
+                                    const svgEl = document.getElementById(tempSvgId);
+                                    const svgString = new XMLSerializer().serializeToString(svgEl);
+                                    const ctx = canvasEl.getContext('2d');
+                                    
+                                    const img = new Image();
+                                    img.onload = () => {
+                                        canvasEl.width = img.width * 3;
+                                        canvasEl.height = img.height * 3;
+                                        ctx.fillStyle = 'white';
+                                        ctx.fillRect(0, 0, canvasEl.width, canvasEl.height);
+                                        ctx.drawImage(img, 0, 0, canvasEl.width, canvasEl.height);
+                                    };
+                                    img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgString)));
+                                    
+                                    tempDiv.remove();
+                                }
+                            });
+                            
+                            // Esperar render y abrir diálogo de impresión
+                            setTimeout(() => {
+                                window.print();
+                            }, 800);
+                        });
+                    <\/script>
+                </body>
+                </html>
+            `);
+            printWindow.document.close();
+        }
+
+        function exportToPDF() {
+            if (!labelsGenerated || currentLabels.length === 0) return;
+
+            const widthMM = parseInt(document.getElementById('widthSlider').value);
+            const heightMM = parseInt(document.getElementById('heightSlider').value);
+            const fontMultiplier = parseFloat(document.getElementById('fontSizeSlider').value);
+            const fontSizeMultiplier = 0.8 * fontMultiplier;
+            const islaFontSize = Math.max(8, heightMM * fontSizeMultiplier);
+            const numberFontSize = Math.max(10, heightMM * fontSizeMultiplier * 1.1);
+            const spacing = 2; // mismo valor fijo que en preview
+            const barcodeHeightPercent = 0.6; // mismo valor fijo que en preview
+
+            // Tamaño carta en mm
+            const pageWidth = 216;  // 8.5"
+            const pageHeight = 279; // 11"
+            const margin = 5;       // margen externo
+            const gap = 2;          // separación entre etiquetas
+
+            // Calcular cuántas etiquetas por fila/columna
+            const usableWidth = pageWidth - 2 * margin;
+            const usableHeight = pageHeight - 2 * margin;
+            const cols = Math.floor((usableWidth + gap) / (widthMM + gap));
+            const rows = Math.floor((usableHeight + gap) / (heightMM + gap));
+            const labelsPerPage = cols * rows;
+
+            const { jsPDF } = window.jspdf;
+            const pdf = new jsPDF({
+                orientation: 'portrait',
+                unit: 'mm',
+                format: 'letter'
+            });
+
+            let labelIndex = 0;
+            
+            const processNext = () => {
+                if (labelIndex >= currentLabels.length) {
+                    // Guardar PDF
+                    pdf.save('etiquetas_barcode.pdf');
+                    return;
+                }
+
+                if (labelIndex > 0 && labelIndex % labelsPerPage === 0) {
+                    pdf.addPage();
+                }
+
+                const indexInPage = labelIndex % labelsPerPage;
+                const row = Math.floor(indexInPage / cols);
+                const col = indexInPage % cols;
+                const x = margin + col * (widthMM + gap);
+                const y = margin + row * (heightMM + gap);
+
+                const { isla, numero } = currentLabels[labelIndex];
+
+                // Generar barcode en SVG temporal
+                const tempSvgId = 'temp_pdf_svg';
+                const tempDiv = document.createElement('div');
+                tempDiv.style.display = 'none';
+                tempDiv.innerHTML = `<svg id="${tempSvgId}"></svg>`;
+                document.body.appendChild(tempDiv);
+
+                const barWidth = Math.max(1.8, (widthMM / 70));
+                const barcodeHeightMM = heightMM * barcodeHeightPercent;
+                const barcodeHeightPx = barcodeHeightMM * 3.78;
+
+                JsBarcode(`#${tempSvgId}`, numero, {
+                    format: 'CODE128',
+                    width: barWidth,
+                    height: barcodeHeightPx,
+                    displayValue: false,
+                    margin: 0
+                });
+
+                const svgEl = document.getElementById(tempSvgId);
+                const svgString = new XMLSerializer().serializeToString(svgEl);
+
+                const img = new Image();
+                img.onload = () => {
+                    // Convertir SVG a PNG con alta resolución
+                    const canvas = document.createElement('canvas');
+                    canvas.width = img.width * 3;
+                    canvas.height = img.height * 3;
+                    const ctx = canvas.getContext('2d');
+                    ctx.fillStyle = 'white';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                    const pngData = canvas.toDataURL('image/png');
+
+                    // Borde de la etiqueta
+                    pdf.setDrawColor(200);
+                    pdf.setLineWidth(0.1);
+                    pdf.rect(x, y, widthMM, heightMM);
+
+                    // Convertir tamaños px a mm para PDF
+                    const pxToMm = 0.264583;
+                    const islaFontMM = islaFontSize * pxToMm;
+                    const numberFontMM = numberFontSize * pxToMm;
+                    const spacingMM = spacing * pxToMm;
+
+                    // jsPDF usa pt para fontSize (1pt ≈ 0.3528mm)
+                    const islaFontPt = islaFontMM / 0.3528;
+                    const numberFontPt = numberFontMM / 0.3528;
+
+                    // Layout: padding + ISLA + spacing + barcode (flex) + spacing + número + padding
+                    const padding = 1; // mm
+                    // El barcode toma todo el espacio restante (como flex: 1 en preview)
+                    const actualBarcodeHeightMM = Math.max(5, 
+                        heightMM - (padding * 2) - islaFontMM - numberFontMM - (spacingMM * 2)
+                    );
+
+                    // Texto ISLA (arriba)
+                    pdf.setFontSize(islaFontPt);
+                    pdf.setFont('courier', 'bold');
+                    const islaText = 'ISLA: ' + isla;
+                    const islaY = y + padding + islaFontMM * 0.75;
+                    pdf.text(islaText, x + widthMM / 2, islaY, { align: 'center' });
+
+                    // Barcode (ocupa el espacio del medio)
+                    const barcodeWidthMM = widthMM * 0.95;
+                    const barcodeX = x + (widthMM - barcodeWidthMM) / 2;
+                    const barcodeY = y + padding + islaFontMM + spacingMM;
+                    pdf.addImage(pngData, 'PNG', barcodeX, barcodeY, barcodeWidthMM, actualBarcodeHeightMM);
+
+                    // Número (abajo)
+                    pdf.setFontSize(numberFontPt);
+                    pdf.setFont('courier', 'bold');
+                    const numberY = barcodeY + actualBarcodeHeightMM + spacingMM + numberFontMM * 0.75;
+                    pdf.text(numero, x + widthMM / 2, numberY, { align: 'center' });
+
+                    tempDiv.remove();
+                    labelIndex++;
+                    processNext();
+                };
+                img.onerror = (e) => {
+                    console.error('Error cargando barcode:', e);
+                    tempDiv.remove();
+                    labelIndex++;
+                    processNext();
+                };
+                img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgString)));
+            };
+
+            processNext();
+        }
+
+        function clearAll() {
+            document.getElementById('islaInput').value = '30';
+            document.getElementById('numbersInput').value = '';
+            document.getElementById('islaNumberInput').value = '';
+            document.getElementById('widthInput').value = '60';
+            document.getElementById('heightInput').value = '40';
+            document.getElementById('previewContainer').innerHTML = '';
+            document.getElementById('previewSection').style.display = 'none';
+            document.getElementById('errorMessage').classList.remove('show');
+            document.getElementById('errorMessage2').classList.remove('show');
+            document.getElementById('statusMessage').classList.remove('show');
+            document.getElementById('exportBtn').disabled = true;
+            document.getElementById('printBtn').disabled = true;
+            currentLabels = [];
+            labelsGenerated = false;
+        }
+
+        // Enter para generar
+        document.getElementById('numbersInput').addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.key === 'Enter') {
+                generateLabels();
+            }
+        });
+
+        document.getElementById('islaNumberInput').addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.key === 'Enter') {
+                generateLabels();
+            }
+        });
+
+        // Sincronizar sliders con displays
+        document.getElementById('widthSlider').addEventListener('input', (e) => {
+            document.getElementById('widthDisplay').textContent = e.target.value;
+            updateLivePreview();
+            // Regenerar etiquetas si ya están generadas (sin scroll)
+            if (labelsGenerated && currentLabels.length > 0) {
+                confirmLabelsInternal(currentLabels, false);
+            }
+        });
+
+        document.getElementById('heightSlider').addEventListener('input', (e) => {
+            document.getElementById('heightDisplay').textContent = e.target.value;
+            updateLivePreview();
+            // Regenerar etiquetas si ya están generadas (sin scroll)
+            if (labelsGenerated && currentLabels.length > 0) {
+                confirmLabelsInternal(currentLabels, false);
+            }
+        });
+
+        // Event listener para slider de tamaño de textos
+        document.getElementById('fontSizeSlider').addEventListener('input', (e) => {
+            const value = parseFloat(e.target.value);
+            document.getElementById('fontSizeValue').textContent = value.toFixed(1) + 'x';
+            updateLivePreview();
+            
+            // Si ya hay etiquetas generadas, regenerar con nuevo tamaño (sin scroll)
+            if (labelsGenerated && currentLabels.length > 0) {
+                confirmLabelsInternal(currentLabels, false);
+            }
+        });
+
+        function updateLivePreview() {
+            const widthMM = parseInt(document.getElementById('widthSlider').value);
+            const heightMM = parseInt(document.getElementById('heightSlider').value);
+            const fontMultiplier = parseFloat(document.getElementById('fontSizeSlider').value);
+            const spacing = 2; // Valor fijo
+            const barcodeHeightPercent = 0.6; // 60% fijo
+            
+            // Aplicar dimensiones reales a la preview
+            const livePreview = document.getElementById('livePreview');
+            livePreview.style.width = widthMM + 'mm';
+            livePreview.style.height = heightMM + 'mm';
+            
+            const fontSizeMultiplier = 0.8 * fontMultiplier;
+            const islaFontSize = Math.max(8, heightMM * fontSizeMultiplier);
+            const numberFontSize = Math.max(10, heightMM * fontSizeMultiplier * 1.1);
+            
+            document.getElementById('previewIsla').style.fontSize = islaFontSize + 'px';
+            document.getElementById('previewIsla').style.margin = '0 0 ' + spacing + 'px 0';
+            document.getElementById('previewNumber').style.fontSize = numberFontSize + 'px';
+            document.getElementById('previewNumber').style.margin = spacing + 'px 0 0 0';
+            
+            // Regenerar barcode en preview
+            try {
+                const tempSvgId = 'temp_preview_svg_' + Date.now();
+                const tempDiv = document.createElement('div');
+                tempDiv.style.display = 'none';
+                tempDiv.innerHTML = `<svg id="${tempSvgId}"></svg>`;
+                document.body.appendChild(tempDiv);
+                
+                const barWidth = Math.max(1.8, (widthMM / 70));
+                const barcodeHeight = Math.max(30, heightMM * barcodeHeightPercent);
+                
+                JsBarcode(`#${tempSvgId}`, '100007', {
+                    format: 'CODE128',
+                    width: barWidth,
+                    height: barcodeHeight,
+                    displayValue: false,
+                    margin: 0
+                });
+                
+                const svgEl = document.getElementById(tempSvgId);
+                const svgString = new XMLSerializer().serializeToString(svgEl);
+                const canvas = document.getElementById('previewBarcode');
+                const ctx = canvas.getContext('2d');
+                
+                const img = new Image();
+                img.onload = () => {
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    ctx.drawImage(img, 0, 0);
+                };
+                img.src = 'data:image/svg+xml;base64,' + btoa(svgString);
+                
+                tempDiv.remove();
+            } catch (e) {
+                // Error al generar
+            }
+        }
+
+        function updateCounters() {
+            // Contador para single-isla
+            try {
+                const numbersInput = document.getElementById('numbersInput').value;
+                const { numbers, issues } = parseNumbers(numbersInput);
+                const singleCounter = document.getElementById('singleCounter');
+                if (numbers.length === 0 && issues.length === 0) {
+                    singleCounter.textContent = '';
+                } else if (issues.length > 0) {
+                    singleCounter.innerHTML = `<span style="color: #d32f2f;">${numbers.length} válida(s), ${issues.length} con error</span>`;
+                } else {
+                    singleCounter.innerHTML = `<span style="color: #2e7d32;">${numbers.length} etiqueta(s)</span>`;
+                }
+            } catch (e) {}
+
+            // Contador para multiple-isla
+            try {
+                const islaNumberInput = document.getElementById('islaNumberInput').value;
+                const { pairs, issues } = parseIslaNumberPairs(islaNumberInput);
+                const duplicate = document.getElementById('duplicateToggle').checked;
+                const totalLabels = duplicate ? pairs.length * 2 : pairs.length;
+                const multipleCounter = document.getElementById('multipleCounter');
+                if (pairs.length === 0 && issues.length === 0) {
+                    multipleCounter.textContent = '';
+                } else if (issues.length > 0) {
+                    multipleCounter.innerHTML = `<span style="color: #d32f2f;">${totalLabels} válida(s), ${issues.length} con error</span>`;
+                } else {
+                    multipleCounter.innerHTML = `<span style="color: #2e7d32;">${totalLabels} etiqueta(s)</span>`;
+                }
+            } catch (e) {}
+        }
+
+        // Actualizar contadores al escribir
+        document.getElementById('numbersInput').addEventListener('input', updateCounters);
+        document.getElementById('islaNumberInput').addEventListener('input', updateCounters);
+        document.getElementById('duplicateToggle').addEventListener('change', updateCounters);
+
+        // Guardar y cargar configuración localmente
+        function saveConfig() {
+            const config = {
+                widthMM: document.getElementById('widthSlider').value,
+                heightMM: document.getElementById('heightSlider').value,
+                fontMultiplier: document.getElementById('fontSizeSlider').value,
+                inputMode: document.querySelector('input[name="inputMode"]:checked').value,
+                islaInput: document.getElementById('islaInput').value,
+                numbersInput: document.getElementById('numbersInput').value,
+                islaNumberInput: document.getElementById('islaNumberInput').value
+            };
+            try {
+                localStorage.setItem('barcodeGeneratorConfig', JSON.stringify(config));
+            } catch (e) {
+                // localStorage no disponible
+            }
+        }
+
+        function loadConfig() {
+            try {
+                const saved = localStorage.getItem('barcodeGeneratorConfig');
+                if (!saved) return;
+                
+                const config = JSON.parse(saved);
+                
+                if (config.widthMM) {
+                    document.getElementById('widthSlider').value = config.widthMM;
+                    document.getElementById('widthDisplay').textContent = config.widthMM;
+                }
+                if (config.heightMM) {
+                    document.getElementById('heightSlider').value = config.heightMM;
+                    document.getElementById('heightDisplay').textContent = config.heightMM;
+                }
+                if (config.fontMultiplier) {
+                    document.getElementById('fontSizeSlider').value = config.fontMultiplier;
+                    document.getElementById('fontSizeValue').textContent = parseFloat(config.fontMultiplier).toFixed(1) + 'x';
+                }
+                if (config.inputMode) {
+                    const radio = document.querySelector(`input[name="inputMode"][value="${config.inputMode}"]`);
+                    if (radio) {
+                        radio.checked = true;
+                        switchInputMode();
+                    }
+                }
+                if (config.islaInput) {
+                    document.getElementById('islaInput').value = config.islaInput;
+                }
+                if (config.numbersInput) {
+                    document.getElementById('numbersInput').value = config.numbersInput;
+                }
+                if (config.islaNumberInput) {
+                    document.getElementById('islaNumberInput').value = config.islaNumberInput;
+                }
+            } catch (e) {
+                // Error al cargar
+            }
+        }
+
+        // Inicializar preview al cargar
+        setTimeout(() => {
+            // Cargar configuración guardada
+            loadConfig();
+            updateLivePreview();
+            updateCounters();
+        }, 100);
+
+        // Guardar en cada cambio
+        ['widthSlider', 'heightSlider', 'fontSizeSlider'].forEach(id => {
+            document.getElementById(id).addEventListener('change', saveConfig);
+        });
+        ['islaInput', 'numbersInput', 'islaNumberInput'].forEach(id => {
+            document.getElementById(id).addEventListener('input', saveConfig);
+        });
+        document.querySelectorAll('input[name="inputMode"]').forEach(radio => {
+            radio.addEventListener('change', saveConfig);
+        });
+    </script>
+</body>
+</html>
