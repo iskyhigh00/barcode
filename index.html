@@ -549,6 +549,10 @@
             <div class="preview-title">Vista Previa</div>
             <div id="previewContainer"></div>
         </div>
+
+        <div style="text-align: right; margin-top: 20px;">
+            <a href="#" onclick="openVisitLog(); return false;" style="font-size: 11px; color: #999; text-decoration: underline;">Registro de visitas</a>
+        </div>
     </div>
 
     <div class="confirmation-dialog" id="confirmationDialog">
@@ -558,6 +562,18 @@
             <div class="dialog-buttons">
                 <button class="btn-confirm" onclick="confirmLabels()">Continuar</button>
                 <button class="btn-cancel" onclick="cancelLabels()">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="confirmation-dialog" id="visitLogDialog">
+        <div class="dialog-content">
+            <h3>Registro de Visitas (<span id="visitLogCount">0</span>)</h3>
+            <p style="font-size: 12px; color: #666;">Se registra cada vez que se abre esta página en esta computadora/navegador.</p>
+            <ul id="visitLogList" style="max-height: 300px; overflow-y: auto; margin: 15px 0; padding-left: 20px; font-size: 13px;"></ul>
+            <div class="dialog-buttons">
+                <button class="btn-cancel" onclick="clearVisitLog()">Borrar registro</button>
+                <button class="btn-confirm" onclick="closeVisitLog()">Cerrar</button>
             </div>
         </div>
     </div>
@@ -1318,12 +1334,58 @@
             }
         }
 
+        // Registro de visitas (guardado localmente en el navegador)
+        function logVisit() {
+            try {
+                const log = JSON.parse(localStorage.getItem('visitLog') || '[]');
+                log.push(Date.now());
+                if (log.length > 500) log.splice(0, log.length - 500);
+                localStorage.setItem('visitLog', JSON.stringify(log));
+            } catch (e) {
+                // localStorage no disponible
+            }
+        }
+
+        function renderVisitLog() {
+            let log = [];
+            try {
+                log = JSON.parse(localStorage.getItem('visitLog') || '[]');
+            } catch (e) {}
+
+            document.getElementById('visitLogCount').textContent = log.length;
+
+            const listEl = document.getElementById('visitLogList');
+            listEl.innerHTML = '';
+            log.slice().reverse().forEach(ts => {
+                const li = document.createElement('li');
+                li.textContent = new Date(ts).toLocaleString('es-AR');
+                listEl.appendChild(li);
+            });
+        }
+
+        function openVisitLog() {
+            renderVisitLog();
+            document.getElementById('visitLogDialog').classList.add('show');
+        }
+
+        function closeVisitLog() {
+            document.getElementById('visitLogDialog').classList.remove('show');
+        }
+
+        function clearVisitLog() {
+            try {
+                localStorage.removeItem('visitLog');
+            } catch (e) {}
+            renderVisitLog();
+        }
+
         // Inicializar preview al cargar
         setTimeout(() => {
             // Cargar configuración guardada
             loadConfig();
             updateLivePreview();
             updateCounters();
+            logVisit();
         }, 100);
 
         // Guardar en cada cambio
